@@ -1,24 +1,42 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './entities/user.entity';
 
+import * as bcryptjs from 'bcryptjs';
+import { LoginDto } from './dto/login.dto';
+import { log } from 'console';
+
 @Injectable()
 export class AuthService {
   //inyectamos en el constructor
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
-  create(createUserDto: CreateUserDto): Promise<User> {
+  
+  //Función Crear usuario
+  async create(createUserDto: CreateUserDto): Promise<User> {
     
     try {
-      const newUser = new this.userModel(createUserDto);
+    //desestructurar en 2 datos
+ const {password,...userData} = createUserDto;
     //1.Encrypt password
+const newUser = new this.userModel({
+  password:bcryptjs.hashSync(password,10),
+  ...userData
+});
+await newUser.save();
+// user contendrá todas las propiedades del objeto resultante de newUser.toJSON(),
+// excepto password, que se ignorará y no se almacenará en la variable user.
+// _ (es una convención para indicar que esta variable no se va a utilizar)
+const {password:_,...user} = newUser.toJSON();
+
+return user;
     //2.Guardar usuario
     //3.Generar JWT
-      return newUser.save();
+      
     } catch (error) {
       if(error.code===11000){
         throw new BadRequestException('user already exists');
@@ -28,6 +46,28 @@ export class AuthService {
  
     
   }
+
+  //función login
+async login(loginDto:LoginDto){
+  const {email,password} = loginDto;
+
+  const user = await this.userModel.findOne({email});
+  if(!user) {
+    throw new UnauthorizedException('NOt valid credentials - email')
+  }
+
+  if(!bcryptjs.compareSync(password,user.password)) {
+    throw new UnauthorizedException('Not valid credentials - password')
+  }
+
+  const { password:_, ...rest } = user.toJSON();
+
+  return {
+    user:rest,
+    token:'Must be done'
+  }
+  
+}
 
   findAll() {
     return `This action returns all auth`;
