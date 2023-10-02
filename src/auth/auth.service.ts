@@ -10,11 +10,18 @@ import { User } from './entities/user.entity';
 import * as bcryptjs from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { log } from 'console';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './interfaces/jwt-payload';
+import { LoginResponse } from './interfaces/login-response';
+import { RegisterUserDto } from './dto/register-user.dto';
 
 @Injectable()
 export class AuthService {
   //inyectamos en el constructor
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(@InjectModel(User.name) 
+  private userModel: Model<User>,
+  private jwtService:JwtService
+  ) {}
   
   //Función Crear usuario
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -32,7 +39,6 @@ await newUser.save();
 // excepto password, que se ignorará y no se almacenará en la variable user.
 // _ (es una convención para indicar que esta variable no se va a utilizar)
 const {password:_,...user} = newUser.toJSON();
-
 return user;
     //2.Guardar usuario
     //3.Generar JWT
@@ -43,12 +49,21 @@ return user;
       }
       throw new InternalServerErrorException('Bad error');
     }
- 
-    
+
+  }
+
+  //función register
+  async register(registerDto:RegisterUserDto):Promise<LoginResponse>{
+    const user = await this.create( registerDto);
+
+    return {
+      user:user,
+      token:this.getJwtToken( {id: user._id}),
+    }
   }
 
   //función login
-async login(loginDto:LoginDto){
+async login(loginDto:LoginDto):Promise<LoginResponse>{
   const {email,password} = loginDto;
 
   const user = await this.userModel.findOne({email});
@@ -64,7 +79,7 @@ async login(loginDto:LoginDto){
 
   return {
     user:rest,
-    token:'Must be done'
+    token: this.getJwtToken({id: user.id}),
   }
   
 }
@@ -84,4 +99,14 @@ async login(loginDto:LoginDto){
   remove(id: number) {
     return `This action removes a #${id} auth`;
   }
+
+  //creamos funcion para JWT
+  getJwtToken(payload:JwtPayload){
+    const token = this.jwtService.sign(payload);
+    return token;
+  }
+
+
+
+
 }

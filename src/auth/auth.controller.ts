@@ -8,9 +8,12 @@ import {
   Delete,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { LoginDto } from './dto/login.dto';
+import {
+  CreateUserDto,
+  UpdateAuthDto,
+  LoginDto,
+  RegisterUserDto,
+} from './dto/';
 
 @Controller('auth')
 export class AuthController {
@@ -24,6 +27,11 @@ export class AuthController {
   @Post('/login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+  //creamos para register
+  @Post('/register')
+  register(@Body() registerDto: RegisterUserDto) {
+    return this.authService.register(registerDto);
   }
 
   @Get()
