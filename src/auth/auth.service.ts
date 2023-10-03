@@ -84,12 +84,19 @@ async login(loginDto:LoginDto):Promise<LoginResponse>{
   
 }
 
-  findAll() {
-    return `This action returns all auth`;
+  findAll():Promise<User[]> {
+    return this.userModel.find();
+  }
+
+  //creamos metodo para buscar id y devolver usuario menos password
+  async findUserById(id:string){
+    const user = await this.userModel.findById(id);
+    const { password, ...rest } = user.toJSON();
+    return rest;
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} auth`;
+    return "This actions returns a id auth";
   }
 
   update(id: number, updateAuthDto: UpdateAuthDto) {
